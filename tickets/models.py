@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from django.db import models
 from django.utils import timezone
+from users.models import User
 
 # Create your models here.
 class Ticket(models.Model):
@@ -26,9 +27,14 @@ class Ticket(models.Model):
     status = models.CharField(max_length=10, default='pending', choices=(STATUS))
     title = models.CharField(max_length=100, null=False, blank=False)
     body = models.TextField(null=False, blank=False)
-    user = models.ForeignKey('users.User', on_delete=models.PROTECT, null=False, blank=False, related_name='user_tickets')
+    user = models.ForeignKey(User, on_delete=models.PROTECT, null=False, blank=False, related_name='user_tickets')
     tickets = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True, related_name='children')
     publish = models.BooleanField(default=False, choices=CHOICE)
+    department = models.ForeignKey('departments.Department', null=False, blank=True, on_delete=models.PROTECT)
+
+
+    class Meta:
+        ordering  = ['-date_updated']
 
     def __str__(self) -> str:
         return f"{self.title} ------> {self.status}"

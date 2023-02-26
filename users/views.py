@@ -1,4 +1,4 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions, authentication
 from rest_framework.response import Response
 from django.db.models.deletion import ProtectedError
 
@@ -13,6 +13,8 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
+    authentication_classes = [authentication.SessionAuthentication, authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAdminUser]
 
 
 class EmployeeDetailView(generics.RetrieveAPIView):
@@ -20,6 +22,8 @@ class EmployeeDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
+    authentication_classes = [authentication.SessionAuthentication, authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
         # Get all User objects and their associated Employee objects
@@ -40,6 +44,8 @@ class EmployeeDeactivateView(generics.DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
+    authentication_classes = [authentication.SessionAuthentication, authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAdminUser]
 
     def delete(self, *args, **kwargs):
         instance = self.get_object()

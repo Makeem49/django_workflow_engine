@@ -25,7 +25,7 @@ class User(AbstractUser):
     phone = models.CharField(max_length=11, null=False, unique=True)
     employee_identification_tag = models.CharField(max_length=50, null=False, blank=False, unique=True)
     position = models.CharField(max_length=20, null=False, blank=False)
-    department = models.ForeignKey("Department", on_delete=models.PROTECT, null=True)
+    department = models.ForeignKey("departments.Department", on_delete=models.PROTECT, null=True)
     level = models.ForeignKey("Level", on_delete=models.PROTECT, null=True, blank=True)
     
 

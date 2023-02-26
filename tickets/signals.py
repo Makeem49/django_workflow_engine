@@ -14,17 +14,17 @@ def create_ticket(sender, instance, created, **kwargs):
     2. Send an email and sms message to the appropriate user base on role and department 
     """
     if created:
-        level = instance.user.level.name.lower()
+
+        level = instance.user.level.name.lower().strip()
 
         user_department = instance.user.department.name
 
         department = Department.objects.filter(name=user_department).first()
-        all_levels = ['analyst', 'supervisor', 'cto / cfo', 'head of department', 'president', 'ceo']
 
+        all_levels = ['analyst', 'supervisor', 'cto/cfo', 'head of department', 'president', 'ceo']
         if level in all_levels:
+            """Send alert if the user condition if true."""
             get_alert(level, instance, User, department)
-        else:
-            """Alert the company of anonymous ticket"""
 
 
 @receiver(post_save, sender=Ticket)
@@ -33,3 +33,14 @@ def save_ticket(sender, instance, **kwargs):
 
     level = instance.user.level.name.lower()
     print('I am being saved now')
+
+    department = instance.department
+
+    """The logic"""
+
+    # if superior is accessing the ticket and is updating it for either accept or deny
+    # notify the owner of the ticket, else if escalate, notify the superior in the department 
+
+    # if the user is the one updating is ticket, don't notify anybody 
+
+    

@@ -37,8 +37,5 @@ class DepartmentDeactivateView(generics.DestroyAPIView):
         except ProtectedError as e:
             instance.active = False
             obj = {}
-            print(instance  )
-            # obj['active'] = instance.active
-            # obj['head_of_department'] = instance.head_of_department
             instance.save()
             return Response(obj, status=status.HTTP_204_NO_CONTENT)
