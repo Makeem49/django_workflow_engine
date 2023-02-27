@@ -4,13 +4,15 @@ from rest_framework.response import Response
 from django.db.models.deletion import ProtectedError
 
 from .models import Department
-from .serializers import DepartmentSerializer
+from .serializers import DepartmentSerializer, DepartmentDetailSerializer
+from .permissions import IsAdminApproveUserOnly
 
 
 class DepartmentListCreateView(generics.ListCreateAPIView):
     """View to create and list department view"""
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
+    permission_classes = [IsAdminApproveUserOnly]
 
     def get_queryset(self):
         qs = Department.objects.filter(active=True)
@@ -20,8 +22,9 @@ class DepartmentListCreateView(generics.ListCreateAPIView):
 class DepartmentDetail(generics.RetrieveAPIView):
     """View to view the detail of a department"""
     queryset = Department.objects.all()
-    serializer_class = DepartmentSerializer
+    serializer_class = DepartmentDetailSerializer
     lookup_field = 'pk'
+    permission_classes = [IsAdminApproveUserOnly]
 
 
 class DepartmentDeactivateView(generics.DestroyAPIView):
@@ -29,6 +32,7 @@ class DepartmentDeactivateView(generics.DestroyAPIView):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
     lookup_field = 'pk'
+    permission_classes = [IsAdminApproveUserOnly]
 
     def delete(self, *args, **kwargs):
         instance = self.get_object()

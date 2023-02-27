@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import User
 from departments.models import Department
+from tickets.models import Ticket
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -21,5 +22,6 @@ class UserSerializer(serializers.ModelSerializer):
         department = rep.get('department')
         dept_name = Department.objects.filter(id=department).first()
         rep['department'] = dept_name.name 
-        return rep 
-
+        rep['level'] = instance.level.name
+        rep['tickets'] = Ticket.objects.filter(user=instance).count()
+        return rep

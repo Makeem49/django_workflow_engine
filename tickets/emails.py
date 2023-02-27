@@ -10,7 +10,6 @@ def send_email_notification(subject, message, from_user, to_user, fail_silently=
     to_user: The personn receiving the email
     """
 
-    print('start *******')
     send_mail(
         subject,
         message,

@@ -17,7 +17,8 @@ def create_ticket(sender, instance, created, **kwargs):
 
         level = instance.user.level.name.lower().strip()
 
-        user_department = instance.user.department.name
+        user_department = instance.user.department.name.strip()
+        print(user_department, '*******')
 
         department = Department.objects.filter(name=user_department).first()
 
@@ -32,7 +33,6 @@ def save_ticket(sender, instance, **kwargs):
     """Notify the high authority of the change in file."""
 
     level = instance.user.level.name.lower()
-    print('I am being saved now')
 
     department = instance.department
 

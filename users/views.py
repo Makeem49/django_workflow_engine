@@ -4,6 +4,7 @@ from django.db.models.deletion import ProtectedError
 
 from .models import User
 from .serializers import UserSerializer
+from departments.permissions import IsAdminApproveUserOnly
 
 
 
@@ -13,8 +14,7 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
-    authentication_classes = [authentication.SessionAuthentication, authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAdminUser, IsAdminApproveUserOnly]
 
 
 class EmployeeDetailView(generics.RetrieveAPIView):
@@ -22,20 +22,8 @@ class EmployeeDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
-    authentication_classes = [authentication.SessionAuthentication, authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAdminUser, IsAdminApproveUserOnly]
 
-    def get_queryset(self):
-        # Get all User objects and their associated Employee objects
-        queryset = User.objects.select_related('employee')
-
-        return queryset
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        print(context)
-        return context
 
 
 class EmployeeDeactivateView(generics.DestroyAPIView):
@@ -44,12 +32,10 @@ class EmployeeDeactivateView(generics.DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
-    authentication_classes = [authentication.SessionAuthentication, authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAdminUser, IsAdminApproveUserOnly]
 
     def delete(self, *args, **kwargs):
         instance = self.get_object()
-        print('user',instance.is_active)
         try:
             super().delete(self, *args, **kwargs)
         except ProtectedError as e:
