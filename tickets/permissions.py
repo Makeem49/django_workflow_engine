@@ -8,10 +8,11 @@ class IsAuthorizeUserPermissionOnly(permissions.DjangoModelPermissions):
 
     def has_permission(self, request, view):
         """Return true for user whose level is among the approve_levels, otherwise return False"""
-        level = request.user.level.name.lower()
+        level = request.user.level.name.lower().strip()
         if level not in self.approve_levels:
             return False
         return super().has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
+
         return super().has_object_permission(request, view, obj)

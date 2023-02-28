@@ -31,7 +31,6 @@ def get_alert(level, instance, model, department):
 
         if level == 'analyst':
             """Get the supervisor email attach to the department."""
-            print(department.supervisor)
             supervisor_email = department.supervisor.email
             message = message_template(department.supervisor.first_name, instance)
             """

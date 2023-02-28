@@ -1,11 +1,11 @@
 from rest_framework import generics, permissions, authentication
+from django.db.models.signals import post_save
 
-
-from .serializers import TicketSerializer, TicketDecideSerializer
+from .serializers import TicketSerializer, TicketDecideSerializer, TicketDetailsSerializer
 from .models import Ticket
 from .exceptions import CannotPerformOperation
 from .permissions import IsAuthorizeUserPermissionOnly
-from tokens.authentications import TokenAuthentication
+from departments.permissions import IsAdminApproveUserOnly
 
 
 # Create your views here.
@@ -13,7 +13,6 @@ class TicketCreateView(generics.CreateAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
-    # authentication_classes = [authentication.SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
@@ -24,28 +23,25 @@ class TicketListView(generics.ListAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
-    # authentication_classes = [authentication.SessionAuthentication, TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated, IsAuthorizeUserPermissionOnly]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        qs = Ticket.objects.filter(publish=True)
+        qs = Ticket.objects.filter(publish=True).filter(tickets=None)
         return qs
 
 
 class TicketDetailView(generics.RetrieveAPIView):
     """View to view the detail of a department"""
     queryset = Ticket.objects.all()
-    serializer_class = TicketSerializer
+    serializer_class = TicketDetailsSerializer
     lookup_field = 'pk'
-    # authentication_classes = [authentication.SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
 
-class TicketUpdateView(generics.UpdateAPIView):
+class TicketUpdateView(generics.RetrieveUpdateAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
-    # authentication_classes = [authentication.SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
 
@@ -61,10 +57,14 @@ class TicketDeleteView(generics.DestroyAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
-    # authentication_classes = [authentication.SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_destroy(self, instance):
+        user = self.request.user
+
+        if instance.user != user:
+            raise CannotPerformOperation(detail='Operation cannot be perform', code=423)
+
         if instance.publish:
             """If ticket has been publish, avoid ability to delete the ticket"""
             raise CannotPerformOperation()
@@ -75,18 +75,13 @@ class TicketDeleteView(generics.DestroyAPIView):
 class TicketDecisionView(generics.RetrieveUpdateAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketDecideSerializer
-    permission_classes = [ permissions.IsAdminUser, IsAuthorizeUserPermissionOnly]
+    # permission_classes = [IsAuthorizeUserPermissionOnly]
 
 
     def perform_update(self, serializer):
-        obj = self.get_object()
-        if obj.publish:
-            """If the ticket has been publish, avoid ability to update the ticket"""
-            raise CannotPerformOperation()
-        return super().perform_update(serializer)
-
-    def perform_update(self, serializer):
-        obj = self.request.user.level 
+        current = self.request.user 
+        print(current.email)
+        post_save.send(sender=Ticket, instance=serializer.instance, created=False, user=current, request=self.request, dispatch_uid='my_unique_identifier')
         return super().perform_update(serializer)
 
 

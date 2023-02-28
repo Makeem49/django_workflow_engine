@@ -8,11 +8,34 @@ class TicketSerializer(serializers.ModelSerializer):
             read_only=True
     )
 
+    department = serializers.SerializerMethodField(read_only=True)
+    status = serializers.SerializerMethodField()
+
     class Meta:
         model = Ticket
-        fields = ["url","title", "body","publish", "date_created", "date_updated"]
+        fields = ["url","title", "body","publish", "status","department", "date_created", "date_updated"]
 
 
+    def get_department(self, obj):
+        department = obj.department.name
+        return department
+
+    def get_status(self, obj):
+        return obj.status
+
+
+class TicketDetailsSerializer(serializers.ModelSerializer):
+    tickets = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Ticket
+        fields = ["title", "body","publish", "status","date_created", "date_updated","tickets"]
+
+    def get_tickets(self, obj):
+        tickets = obj.children.all()
+        request = self.context.get('request')
+        tickets = TicketSerializer(tickets, many=True, context={'request': request}).data
+        return tickets
 
     
 class TicketActionSerializer(serializers.Serializer):
@@ -29,24 +52,29 @@ class TicketActionSerializer(serializers.Serializer):
 class TicketDecideSerializer(serializers.ModelSerializer):
 
     action = TicketActionSerializer(required=False)
+    tickets = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Ticket
-        fields = ["title", "body","publish", "status","date_created", "date_updated", "action"]
+        fields = ["title", "body","publish", "status","date_created", "date_updated","tickets", "action"]
+
+    def get_tickets(self, obj):
+        tickets = obj.children.all()
+        request = self.context.get('request')
+        tickets = TicketSerializer(tickets, many=True, context={'request': request}).data
+        return tickets
+
 
     def create(self, validated_data):
-        print('created')
         return super().create(validated_data)
 
 
     def update(self, instance, validated_data):
-        print('saved')
         user = self.context['request'].user
         new_ticket_data = validated_data.get('action')
-        if instance.status.strip().lower() == 'excalated':
-            print('excaled pppppppp')
+        if validated_data.get('status').lower().strip() == 'excalated':
             if new_ticket_data['title'] and new_ticket_data['body']:
                 ticket = Ticket.objects.create(user=user, department=instance.department, **new_ticket_data)
-                instance.tickets = ticket
-                print(instance.tickets)
+                instance.children.add(ticket)
+                instance.save()
         return super().update(instance, validated_data)
