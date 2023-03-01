@@ -4,8 +4,11 @@ from django.db.models.signals import post_save
 from .serializers import TicketSerializer, TicketDecideSerializer, TicketDetailsSerializer
 from .models import Ticket
 from .exceptions import CannotPerformOperation
-from .permissions import IsAuthorizeUserPermissionOnly
-from departments.permissions import IsAdminApproveUserOnly
+from .permissions import (
+            IsAuthorizeUserPermissionOnly, 
+            IsAuthorizeToRaiseIssue, 
+            IsAuthor,
+            IsPermittedToMakeDecision)
 
 
 # Create your views here.
@@ -13,7 +16,7 @@ class TicketCreateView(generics.CreateAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAuthorizeToRaiseIssue]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user, department=self.request.user.department)
@@ -23,11 +26,40 @@ class TicketListView(generics.ListAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAuthorizeUserPermissionOnly]
 
     def get_queryset(self):
+        user = self.request.user
+        level = user.level.name.strip().lower()
+        department = user.department.name
+
         qs = Ticket.objects.filter(publish=True).filter(tickets=None)
+        if user.is_superuser:       
+            return qs 
+
+        if level == 'supervisor':
+            qs = Ticket.objects.filter(user__level__name__iexact='Analyst')\
+                        .filter(department__name__iexact=department)\
+                            .filter(publish=True).filter(tickets=None)
+
+        elif level == 'head of department':
+            qs = Ticket.objects.filter(user__level__name__iexact='supervisor')\
+                    .filter(department__name__iexact=department)\
+                        .filter(publish=True).filter(tickets=None)
+
+        elif level == 'cto/cfo':
+            qs = Ticket.objects.filter(user__level__name__iexact='head of department')\
+                .filter(publish=True).filter(tickets=None)
+
+        elif level == 'president':
+            qs = Ticket.objects.filter(user__level__name__iexact='cto/cfo')\
+                .filter(publish=True).filter(tickets=None)
+
+        elif level == 'ceo':
+            qs = Ticket.objects.filter(user__level__name__iexact='president')\
+                .filter(publish=True).filter(tickets=None)
         return qs
+
 
 
 class TicketDetailView(generics.RetrieveAPIView):
@@ -35,14 +67,14 @@ class TicketDetailView(generics.RetrieveAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketDetailsSerializer
     lookup_field = 'pk'
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsPermittedToMakeDecision]
 
 
 class TicketUpdateView(generics.RetrieveUpdateAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAuthor]
 
 
     def perform_update(self, serializer):
@@ -57,7 +89,7 @@ class TicketDeleteView(generics.DestroyAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAuthor]
 
     def perform_destroy(self, instance):
         user = self.request.user
@@ -75,7 +107,7 @@ class TicketDeleteView(generics.DestroyAPIView):
 class TicketDecisionView(generics.RetrieveUpdateAPIView):
     queryset = Ticket.objects.all()
     serializer_class = TicketDecideSerializer
-    # permission_classes = [IsAuthorizeUserPermissionOnly]
+    permission_classes = [IsAuthorizeUserPermissionOnly, IsPermittedToMakeDecision]
 
 
     def perform_update(self, serializer):
@@ -90,6 +122,7 @@ class OwnerTicketView(generics.ListAPIView):
 
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
+    permission_classes = [IsAuthor]
 
     
     def get_queryset(self):

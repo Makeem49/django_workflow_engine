@@ -26,16 +26,24 @@ class TicketSerializer(serializers.ModelSerializer):
 
 class TicketDetailsSerializer(serializers.ModelSerializer):
     tickets = serializers.SerializerMethodField(read_only=True)
-
+    user_tag = serializers.SerializerMethodField()
+    
+    
     class Meta:
         model = Ticket
-        fields = ["title", "body","publish", "status","date_created", "date_updated","tickets"]
+        fields = ["title", "body","publish", "user_tag","status","date_created", "date_updated","tickets"]
 
     def get_tickets(self, obj):
         tickets = obj.children.all()
         request = self.context.get('request')
         tickets = TicketSerializer(tickets, many=True, context={'request': request}).data
         return tickets
+
+    def get_user_tag(self, obj):
+        return obj.user.employee_identification_tag
+
+    
+    
 
     
 class TicketActionSerializer(serializers.Serializer):
@@ -75,6 +83,9 @@ class TicketDecideSerializer(serializers.ModelSerializer):
         if validated_data.get('status').lower().strip() == 'excalated':
             if new_ticket_data['title'] and new_ticket_data['body']:
                 ticket = Ticket.objects.create(user=user, department=instance.department, **new_ticket_data)
-                instance.children.add(ticket)
+                if instance.tickets:
+                    instance.tickets.children.add(ticket)
+                else:
+                    instance.children.add(ticket)
                 instance.save()
         return super().update(instance, validated_data)

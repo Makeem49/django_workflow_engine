@@ -52,4 +52,4 @@ def create_ticket(sender, instance, created, **kwargs):
             curret_request = kwargs.get('request')
             if curret_request:
                 print('send update email')
-                send_mail(ticket_title, message, user_email, curret_request.user.email)
+                send_mail(ticket_title, message, curret_request.user.email, user_email)
