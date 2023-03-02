@@ -25,14 +25,19 @@ def create_ticket(sender, instance, created, **kwargs):
             get_alert(level, instance, User, department)
 
     else:
-
+        """If a new ticket is not been created, it will check the status and 
+        condition of the instance to determine whether to notify the appropriate 
+        person or not.
+        """
         status = instance.status.lower().strip()
+        print(status, 'status')
+        print()
 
         if department and instance.publish and status == 'excalated': 
 
             get_alert(level, instance, User, department)
 
-        elif status == 'approve' or status == 'deny':
+        elif instance.publish and status == 'approve' or status == 'deny':
             user_email = instance.user.email
             ticket_title = f"Ticket update on {instance.title}"
             message = f"""
@@ -49,7 +54,16 @@ def create_ticket(sender, instance, created, **kwargs):
 
                 Thanks. 
             """
-            curret_request = kwargs.get('request')
-            if curret_request:
+            current_request = kwargs.get('request')
+            if current_request:
+                print(current_request.user.email, 'userrrrrrr')
                 print('send update email')
-                send_mail(ticket_title, message, curret_request.user.email, user_email)
+                send_mail(ticket_title, message, current_request.user.email, user_email)
+
+        else:
+            print('end')
+            status = instance.status.lower().strip()
+
+            if department and instance.publish: 
+
+                get_alert(level, instance, User, department)

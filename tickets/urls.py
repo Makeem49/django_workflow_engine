@@ -10,7 +10,7 @@ urlpatterns = [
     path('<int:pk>/update', views.TicketUpdateView.as_view(), name='ticket-update'),
     path('<int:pk>/decide/', views.TicketDecisionView.as_view(), name='ticket-decide'),
     path('owner/', views.OwnerTicketView.as_view(), name='ticket-owner'),
-    path('<int:pk>/delete', views.TicketDeleteView.as_view(), name='ticket-owner'),
+    path('<int:pk>/delete', views.TicketDeleteView.as_view(), name='ticket-owner-delete'),
     # path('<int:pk>/delete', views.TicketDeleteView.as_view(), name='ticket-owner'),
 
 ]

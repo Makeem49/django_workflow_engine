@@ -37,12 +37,15 @@ class IsAuthor(permissions.BasePermission):
         return False
 
     def has_object_permission(self, request, view, obj):
-        if obj.user == request.user:
+        user = request.user
+        if obj.user == user:
             return True
         return False
 
 
 class IsPermittedToMakeDecision(permissions.BasePermission):
+
+    message = 'You do not have to access this ticket, either you don\'t have the permission or the ticket has not been publish'
 
     def has_object_permission(self, request, view, obj):
         user = request.user
@@ -51,20 +54,23 @@ class IsPermittedToMakeDecision(permissions.BasePermission):
 
         if user.is_superuser:
             return True
+        
+        if obj.publish:
 
-        if level == 'supervisor' and depratment == obj.department and obj.user.level.name.strip().lower() == 'analyst':
-            return True
+            if level == 'supervisor' and depratment == obj.department and obj.user.level.name.strip().lower() == 'analyst':
+                return True
 
-        if level == 'head of department' and depratment == obj.department and obj.user.level.name.strip().lower() == 'supervisor':
-            return True
+            if level == 'head of department' and depratment == obj.department and obj.user.level.name.strip().lower() == 'supervisor':
+                return True
 
-        if level == 'cto/cfo' and obj.user.level.name.strip().lower() == 'head of department':
-            return True
+            if level == 'cto/cfo' and obj.user.level.name.strip().lower() == 'head of department':
+                return True
 
-        if level == 'president' and obj.user.level.name.strip().lower() == 'cto/cfo':
-            return True 
+            if level == 'president' and obj.user.level.name.strip().lower() == 'cto/cfo':
+                return True 
 
-        if level == 'ceo' and obj.user.level.name.strip().lower() == 'president':
-            return True
+            if level == 'ceo' and obj.user.level.name.strip().lower() == 'president':
+                return True
 
+            return False
         return False

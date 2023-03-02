@@ -1,6 +1,7 @@
 from .tasks import send_mail
 
 def message_template(superior_officer, instance):
+    """Message template"""
     message = f"""
                 Hello {superior_officer}, a ticket an been raised, kindly check it out.\n 
 

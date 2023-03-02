@@ -1,4 +1,4 @@
-from rest_framework import generics, permissions, authentication
+from rest_framework import generics, permissions
 from django.db.models.signals import post_save
 
 from .serializers import TicketSerializer, TicketDecideSerializer, TicketDetailsSerializer
@@ -11,8 +11,15 @@ from .permissions import (
             IsPermittedToMakeDecision)
 
 
-# Create your views here.
+
 class TicketCreateView(generics.CreateAPIView):
+    """This view allow authenticated user and user that are fully integrated into the company to create a ticket.
+    
+    *Requirement*
+    1. Must be authenticated
+    2. Must have a level and belong to a department.
+    
+    """
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
@@ -23,47 +30,70 @@ class TicketCreateView(generics.CreateAPIView):
 
 
 class TicketListView(generics.ListAPIView):
+    """This view allow user from supervisor level and above to access this endpoint to check the numbe rof tickets that has been raised.
+
+    *Requiremnt *
+    1. Must be authenticated.
+    2. MUst have a level above analyst to access the endpoint.
+    """
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
     permission_classes = [permissions.IsAuthenticated, IsAuthorizeUserPermissionOnly]
 
     def get_queryset(self):
+        """The custom query set only allow user of a particular level
+        to see ticket issues raise by user lower in level than them.
+        """
         user = self.request.user
         level = user.level.name.strip().lower()
         department = user.department.name
 
         qs = Ticket.objects.filter(publish=True).filter(tickets=None)
-        if user.is_superuser:       
-            return qs 
+        # if user.is_superuser:
+        #     return qs 
 
         if level == 'supervisor':
+            """Supervisor only see tickets open by the analyst which has been published in the same department.
+            """
             qs = Ticket.objects.filter(user__level__name__iexact='Analyst')\
                         .filter(department__name__iexact=department)\
                             .filter(publish=True).filter(tickets=None)
 
         elif level == 'head of department':
+            """Head of department only see tickets opened by the department supervisor he is heading.
+               """
             qs = Ticket.objects.filter(user__level__name__iexact='supervisor')\
                     .filter(department__name__iexact=department)\
-                        .filter(publish=True).filter(tickets=None)
+                        .filter(publish=True)
 
         elif level == 'cto/cfo':
+            """The cto/cfo only see the ticket open by any head of department in the company.
+            """
             qs = Ticket.objects.filter(user__level__name__iexact='head of department')\
-                .filter(publish=True).filter(tickets=None)
+                .filter(publish=True)
 
         elif level == 'president':
+            """The president only see tickets open by either the cto/cfo of the comapny.
+            """
             qs = Ticket.objects.filter(user__level__name__iexact='cto/cfo')\
-                .filter(publish=True).filter(tickets=None)
+                .filter(publish=True)
 
         elif level == 'ceo':
+            """The ceo can only see list of tickets of teh company presidents."""
             qs = Ticket.objects.filter(user__level__name__iexact='president')\
-                .filter(publish=True).filter(tickets=None)
+                .filter(publish=True)
         return qs
 
 
 
 class TicketDetailView(generics.RetrieveAPIView):
-    """View to view the detail of a department"""
+    """View to view the detail of a department
+    
+    *Requirement*
+    1. Must be authenticated.
+    2. Must have meet all the permission requirement.
+    """
     queryset = Ticket.objects.all()
     serializer_class = TicketDetailsSerializer
     lookup_field = 'pk'
@@ -71,6 +101,13 @@ class TicketDetailView(generics.RetrieveAPIView):
 
 
 class TicketUpdateView(generics.RetrieveUpdateAPIView):
+    """
+    Endpoint where the owner of the ticket can update the ticket 
+    if it has not been publish.
+    *Requirement*
+    1. Must be authenticated
+    2. Must be the owner of the ticket
+    """
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
@@ -86,6 +123,13 @@ class TicketUpdateView(generics.RetrieveUpdateAPIView):
 
 
 class TicketDeleteView(generics.DestroyAPIView):
+    """
+    Endpoint to allow user to delete their draft ticket.
+    *Requirement*
+    1. Must be authenticated
+    2. Must be the owner
+    3. Must not have been published.
+    """
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     lookup_field = 'pk'
@@ -105,6 +149,13 @@ class TicketDeleteView(generics.DestroyAPIView):
 
 
 class TicketDecisionView(generics.RetrieveUpdateAPIView):
+    """
+    Endpoint where further decision can be made on a ticket by the superior.
+
+    *Requirements*
+    1. Must have a level above analyst
+    2. Must meet the requirement of approving, deny or escalating a ticket
+    """
     queryset = Ticket.objects.all()
     serializer_class = TicketDecideSerializer
     permission_classes = [IsAuthorizeUserPermissionOnly, IsPermittedToMakeDecision]
@@ -112,7 +163,6 @@ class TicketDecisionView(generics.RetrieveUpdateAPIView):
 
     def perform_update(self, serializer):
         current = self.request.user 
-        print(current.email)
         post_save.send(sender=Ticket, instance=serializer.instance, created=False, user=current, request=self.request, dispatch_uid='my_unique_identifier')
         return super().perform_update(serializer)
 
@@ -126,6 +176,7 @@ class OwnerTicketView(generics.ListAPIView):
 
     
     def get_queryset(self):
+        """Get lis of the owner tickets."""
         tickets = self.request.GET.get('publish')
         publish_ticket = self.request.GET.get('publish')
         user = self.request.user

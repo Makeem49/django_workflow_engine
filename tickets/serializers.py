@@ -61,6 +61,9 @@ class TicketDecideSerializer(serializers.ModelSerializer):
 
     action = TicketActionSerializer(required=False)
     tickets = serializers.SerializerMethodField(read_only=True)
+    title = serializers.SerializerMethodField(read_only=True)
+    body = serializers.SerializerMethodField(read_only=True)
+    publish = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Ticket
@@ -71,6 +74,15 @@ class TicketDecideSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         tickets = TicketSerializer(tickets, many=True, context={'request': request}).data
         return tickets
+    
+    def get_title(self, obj):
+        return obj.title
+    
+    def get_body(self, obj):
+        return obj.body
+    
+    def get_publish(self, obj):
+        return obj.publish
 
 
     def create(self, validated_data):
