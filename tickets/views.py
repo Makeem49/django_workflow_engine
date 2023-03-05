@@ -1,14 +1,23 @@
 from rest_framework import generics, permissions
 from django.db.models.signals import post_save
+from rest_framework.response import Response
 
-from .serializers import TicketSerializer, TicketDecideSerializer, TicketDetailsSerializer
+from .serializers import (TicketSerializer, 
+                        TicketDecideSerializer,
+                        TicketDetailsSerializer, 
+                        TicketOwnerSerializer)
 from .models import Ticket
-from .exceptions import CannotPerformOperation
+from .utils import get_list
+from .exceptions import CannotPerformOperation, MissingData
+from departments.models import Department
+from users.models import User
 from .permissions import (
             IsAuthorizeUserPermissionOnly, 
             IsAuthorizeToRaiseIssue, 
             IsAuthor,
             IsPermittedToMakeDecision)
+from .tasks import send_email
+from .utils import get_alert
 
 
 
@@ -18,7 +27,6 @@ class TicketCreateView(generics.CreateAPIView):
     *Requirement*
     1. Must be authenticated
     2. Must have a level and belong to a department.
-    
     """
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
@@ -45,45 +53,7 @@ class TicketListView(generics.ListAPIView):
         """The custom query set only allow user of a particular level
         to see ticket issues raise by user lower in level than them.
         """
-        user = self.request.user
-        level = user.level.name.strip().lower()
-        department = user.department.name
-
-        qs = Ticket.objects.filter(publish=True).filter(tickets=None)
-        # if user.is_superuser:
-        #     return qs 
-
-        if level == 'supervisor':
-            """Supervisor only see tickets open by the analyst which has been published in the same department.
-            """
-            qs = Ticket.objects.filter(user__level__name__iexact='Analyst')\
-                        .filter(department__name__iexact=department)\
-                            .filter(publish=True).filter(tickets=None)
-
-        elif level == 'head of department':
-            """Head of department only see tickets opened by the department supervisor he is heading.
-               """
-            qs = Ticket.objects.filter(user__level__name__iexact='supervisor')\
-                    .filter(department__name__iexact=department)\
-                        .filter(publish=True)
-
-        elif level == 'cto/cfo':
-            """The cto/cfo only see the ticket open by any head of department in the company.
-            """
-            qs = Ticket.objects.filter(user__level__name__iexact='head of department')\
-                .filter(publish=True)
-
-        elif level == 'president':
-            """The president only see tickets open by either the cto/cfo of the comapny.
-            """
-            qs = Ticket.objects.filter(user__level__name__iexact='cto/cfo')\
-                .filter(publish=True)
-
-        elif level == 'ceo':
-            """The ceo can only see list of tickets of teh company presidents."""
-            qs = Ticket.objects.filter(user__level__name__iexact='president')\
-                .filter(publish=True)
-        return qs
+        return get_list(self)
 
 
 
@@ -113,12 +83,18 @@ class TicketUpdateView(generics.RetrieveUpdateAPIView):
     lookup_field = 'pk'
     permission_classes = [permissions.IsAuthenticated, IsAuthor]
 
-
     def perform_update(self, serializer):
+        instance = self.get_object()
+        level = self.request.user.level.name.strip().lower()
+        user_department = instance.user.department.name.strip()
+        department = Department.objects.filter(name=user_department).first()
         obj = self.get_object()
         if obj.publish:
             """If the ticket has been publish, avoid ability to update the ticket"""
             raise CannotPerformOperation()
+        instance = serializer.save()
+        print(instance.publish, type(instance.publish), "+++++++++++++++++++++")
+        get_alert(level, instance, User, department)
         return super().perform_update(serializer)
 
 
@@ -151,27 +127,81 @@ class TicketDeleteView(generics.DestroyAPIView):
 class TicketDecisionView(generics.RetrieveUpdateAPIView):
     """
     Endpoint where further decision can be made on a ticket by the superior.
-
     *Requirements*
     1. Must have a level above analyst
     2. Must meet the requirement of approving, deny or escalating a ticket
     """
     queryset = Ticket.objects.all()
     serializer_class = TicketDecideSerializer
+    # permission_classes = [IsAuthorizeUserPermissionOnly]
     permission_classes = [IsAuthorizeUserPermissionOnly, IsPermittedToMakeDecision]
 
 
     def perform_update(self, serializer):
-        current = self.request.user 
-        post_save.send(sender=Ticket, instance=serializer.instance, created=False, user=current, request=self.request, dispatch_uid='my_unique_identifier')
-        return super().perform_update(serializer)
+        print(self.request.data)
+        instance = self.get_object()
+        user_department = instance.user.department.name.strip()
+        department = Department.objects.filter(name=user_department).first()
+        user_email = instance.user.email
+        current_user = self.request.user
+        status = self.request.data['status'].strip().lower()
+        new_body = ''
+        new_title = ''
+        if self.request.data.get('action.publish') :
+            new_title = self.request.data['action.title']
+            new_body = self.request.data['action.body']
+            publish = self.request.data.get('action.publish')
+        
+        if self.request.data.get('action'):
+            excalate_data = self.request.data.get('action')
+            new_title = excalate_data.get('title')
+            new_body = excalate_data.get('body')
+            publish = excalate_data.get('publish')
+
+        message = f"""
+                Hello {instance.user.first_name}, there is an update on your ticket, kindly check it out.\n 
+
+                Ticket information:
+
+                Ticket ID : {instance.ticket_id}
+                Created at: {instance.date_updated}
+                Created by: {instance.user.first_name} {instance.user.last_name}
+                Department: {instance.user.department.name}
+                Emaployee tag: {instance.user.employee_identification_tag}
+                Employee level: {instance.user.level.name.capitalize()}
+
+                Thanks. 
+            """
+
+        if status == 'approve' or status == 'deny' or status=='pending': 
+            send_email.delay(instance.title, message, current_user.email, user_email)
+
+        elif status == 'excalated':
+            """If the ticket is excalated, create a new ticket, and notify the superior person in charge of the excalated issue."""
+            ticket = None
+            if new_title and new_body:
+                ticket = Ticket.objects.create(user=current_user, department=instance.department, title=new_title, body=new_body, publish=publish)
+                # if instance.tickets:
+                #     instance.tickets.children.add(ticket)
+                # else:
+                #     instance.children.add(ticket)
+                instance.children.add(ticket)
+                    # send_email(instance.title, message, current_user.email, user_email)
+            else:
+                raise MissingData()
+
+
+
+        instance = serializer.save()
+
+        return Response(serializer.data)
 
 
 class OwnerTicketView(generics.ListAPIView):
     """This endpoint will list all the user ticket either created or non created."""
 
     queryset = Ticket.objects.all()
-    serializer_class = TicketSerializer
+    serializer_class = TicketOwnerSerializer
     permission_classes = [IsAuthor]
 
     

@@ -17,8 +17,8 @@ class Ticket(models.Model):
     ]
 
     CHOICE = [
-        (False, 'False'),
-        (True, 'True')
+        ('False', False),
+        ('True', True)
     ]
 
     ticket_id = models.UUIDField(default=uuid4, editable=False)

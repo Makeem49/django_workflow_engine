@@ -1,7 +1,6 @@
 from django.core.mail import send_mail
 
 
-
 def send_email_notification(subject, message, from_user, to_user, fail_silently=False):
     """
     subject: Email subject,

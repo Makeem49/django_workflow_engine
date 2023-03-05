@@ -156,11 +156,20 @@ EMAIL_PORT = '2525'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 
-# Redis config http://127.0.0.1:8000
-CELERY_RESULT_BACKEND = 'django-db'
-CELERY_CACHE_BACKEND = 'django-cache'
-# celery setting.
-CELERY_CACHE_BACKEND = 'default'
+# # Redis config http://127.0.0.1:8000
+# CELERY_RESULT_BACKEND = 'django-db'
+# CELERY_CACHE_BACKEND = 'django-cache'
+# # celery setting.
+# CELERY_CACHE_BACKEND = 'default'
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+CELERY_TIMEZONE = 'UTC'
 
 # django setting.
 CACHES = {

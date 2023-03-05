@@ -1,9 +1,13 @@
-from .tasks import send_mail
+from tickets.tasks import send_email
+from .models import Ticket
+from .exceptions import MissingData
+from users.models import User
 
-def message_template(superior_officer, instance):
+
+def message_template(user, instance):
     """Message template"""
     message = f"""
-                Hello {superior_officer}, a ticket an been raised, kindly check it out.\n 
+                Hello {user}, a ticket an been raised, kindly check it out.\n 
 
                 Ticket information:
 
@@ -37,7 +41,7 @@ def get_alert(level, instance, model, department):
             """
             * Todo: Send email notifying the supervisor of the department an alert 
             """
-            send_mail(instance.title, message, instance.user.email, supervisor_email)
+            send_email.delay(instance.title, message, instance.user.email, supervisor_email)
 
 
         elif level == 'supervisor':
@@ -45,11 +49,10 @@ def get_alert(level, instance, model, department):
             head_of_department_email = department.head_of_department.email
             message = message_template(department.head_of_department.first_name, instance)
 
-
             """
             * Todo: Send email notifying the head of department an alert
             """
-            send_mail(instance.title, message, instance.user.email, head_of_department_email)
+            send_email.delay(instance.title, message, instance.user.email, head_of_department_email)
 
         elif level == 'head of department':
             """Get the company cto/cfo email"""
@@ -60,7 +63,7 @@ def get_alert(level, instance, model, department):
             """
             * Todo: Send email to the cto/cfo of the company an alert 
             """
-            send_mail(instance.title, message, instance.user.email, cto_or_cfo_email)
+            send_email.delay(instance.title, message, instance.user.email, cto_or_cfo_email)
 
         elif level == 'cto/cfo':
             """Get the company president email"""
@@ -71,7 +74,7 @@ def get_alert(level, instance, model, department):
             """
             * Todo: Send email to the company president
             """
-            send_mail(instance.title, message, instance.user.email, president_email)
+            send_email.delay(instance.title, message, instance.user.email, president_email)
 
         elif level == 'president':
             """Get the CEO email"""
@@ -81,5 +84,52 @@ def get_alert(level, instance, model, department):
 
             """
             * Todo: Send email to the CEO of the president
-            """                    
-            send_mail(instance.title, message, instance.user.email, ceo_email)
+            """
+            send_email.delay(instance.title, message, instance.user.email, ceo_email)
+
+    else:
+        print('Not sending email')
+
+def get_list(self):
+    user = self.request.user
+    level = user.level.name.strip().lower()
+    department = user.department.name
+
+    qs = Ticket.objects.filter(publish=True).filter(tickets=None)
+    # if user.is_superuser:
+    #     return qs 
+
+    if level == 'supervisor':
+        """Supervisor only see tickets open by the analyst which has been published in the same department.
+        """
+        qs = Ticket.objects.filter(user__level__name__iexact='Analyst')\
+                    .filter(department__name__iexact=department)\
+                        .filter(publish=True).filter(tickets=None)
+
+    elif level == 'head of department':
+        """Head of department only see tickets opened by the department supervisor he is heading.
+            """
+        qs = Ticket.objects.filter(user__level__name__iexact='supervisor')\
+                .filter(department__name__iexact=department)\
+                    .filter(publish=True)
+
+    elif level == 'cto/cfo':
+        """The cto/cfo only see the ticket open by any head of department in the company.
+        """
+        qs = Ticket.objects.filter(user__level__name__iexact='head of department')\
+            .filter(publish=True)
+
+    elif level == 'president':
+        """The president only see tickets open by either the cto/cfo of the comapny.
+        """
+        qs = Ticket.objects.filter(user__level__name__iexact='cto/cfo')\
+            .filter(publish=True)
+
+    elif level == 'ceo':
+        """The ceo can only see list of tickets of teh company presidents."""
+        qs = Ticket.objects.filter(user__level__name__iexact='president')\
+            .filter(publish=True)
+    return qs
+
+
+ 

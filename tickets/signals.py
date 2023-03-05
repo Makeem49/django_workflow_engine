@@ -4,10 +4,10 @@ from django.dispatch import receiver
 from .models import Ticket
 from users.models import User
 from departments.models import Department
-from .utils import get_alert, message_template
-from .tasks import send_mail
+from .utils import get_alert
 
-@receiver(post_save, sender=Ticket, dispatch_uid='my_unique_identifier')
+
+@receiver(post_save, sender=Ticket)
 def create_ticket(sender, instance, created, **kwargs):
     """Help create a ticket profile when the a new issue is created
     * Todo 
@@ -20,50 +20,9 @@ def create_ticket(sender, instance, created, **kwargs):
     department = Department.objects.filter(name=user_department).first()
     all_levels = ['analyst', 'supervisor', 'cto/cfo', 'head of department', 'president', 'ceo']
     if created:
-        if level in all_levels:
+        print('create')
+        print(instance.publish, type(instance.publish), '************************')
+        if level in all_levels and (instance.publish==True or instance.publish=='True'):
             """Send alert if the user condition if true."""
+            print('sending message alert')
             get_alert(level, instance, User, department)
-
-    else:
-        """If a new ticket is not been created, it will check the status and 
-        condition of the instance to determine whether to notify the appropriate 
-        person or not.
-        """
-        status = instance.status.lower().strip()
-        print(status, 'status')
-        print()
-
-        if department and instance.publish and status == 'excalated': 
-
-            get_alert(level, instance, User, department)
-
-        elif instance.publish and status == 'approve' or status == 'deny':
-            user_email = instance.user.email
-            ticket_title = f"Ticket update on {instance.title}"
-            message = f"""
-                Hello {instance.user.first_name}, there is an update on your ticket, kindly check it out.\n 
-
-                Ticket information:
-
-                Ticket ID : {instance.ticket_id}
-                Created at: {instance.date_updated}
-                Created by: {instance.user.first_name} {instance.user.last_name}
-                Department: {instance.user.department.name}
-                Emaployee tag: {instance.user.employee_identification_tag}
-                Employee level: {instance.user.level.name.capitalize()}
-
-                Thanks. 
-            """
-            current_request = kwargs.get('request')
-            if current_request:
-                print(current_request.user.email, 'userrrrrrr')
-                print('send update email')
-                send_mail(ticket_title, message, current_request.user.email, user_email)
-
-        else:
-            print('end')
-            status = instance.status.lower().strip()
-
-            if department and instance.publish: 
-
-                get_alert(level, instance, User, department)
