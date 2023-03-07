@@ -28,6 +28,8 @@ class User(AbstractUser):
     department = models.ForeignKey("departments.Department", on_delete=models.PROTECT, null=True)
     level = models.ForeignKey("Level", on_delete=models.PROTECT, null=True, blank=True)
     
+    class Meta:
+        ordering = ['-phone']
 
     @property
     def generate_identication(self):

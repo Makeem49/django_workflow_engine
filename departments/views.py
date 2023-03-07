@@ -40,6 +40,6 @@ class DepartmentDeactivateView(generics.DestroyAPIView):
             super().delete(self, *args, **kwargs)
         except ProtectedError as e:
             instance.active = False
-            obj = {}
-            instance.save()
-            return Response(obj, status=status.HTTP_204_NO_CONTENT)
+        obj = {}
+        instance.save()
+        return Response(obj, status=status.HTTP_204_NO_CONTENT)

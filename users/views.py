@@ -1,11 +1,10 @@
-from rest_framework import generics, status, permissions, authentication
+from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from django.db.models.deletion import ProtectedError
 
 from .models import User
 from .serializers import UserSerializer
 from departments.permissions import IsAdminApproveUserOnly
-
 
 
 
@@ -38,6 +37,8 @@ class EmployeeDeactivateView(generics.DestroyAPIView):
         instance = self.get_object()
         try:
             super().delete(self, *args, **kwargs)
+            obj = {}
+            return Response(obj, status=status.HTTP_204_NO_CONTENT)
         except ProtectedError as e:
             instance.is_active = False
             obj = {}
