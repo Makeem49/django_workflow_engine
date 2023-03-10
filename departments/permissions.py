@@ -14,8 +14,8 @@ class IsAdminApproveUserOnly(permissions.DjangoModelPermissions):
         if level not in self.approve_levels:
             return False
 
-        # if department != "administrative department":
-        #     return False 
+        if department != "administrative department":
+            return False 
 
         return super().has_permission(request, view)
 
