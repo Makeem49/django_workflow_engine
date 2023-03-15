@@ -4,7 +4,7 @@ from tickets import views
 
 
 urlpatterns = [
-    path('create', views.TicketCreateView.as_view(), name='ticket-create'),
+    path('create/', views.TicketCreateView.as_view(), name='ticket-create'),
     path('', views.TicketListView.as_view(), name='ticket-list'),
     path('<int:pk>/', views.TicketDetailView.as_view(), name='ticket-details'),
     path('<int:pk>/update', views.TicketUpdateView.as_view(), name='ticket-update'),

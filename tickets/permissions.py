@@ -1,17 +1,26 @@
 from rest_framework import permissions
+from .constants import (
+                supervisor,
+                hod,
+                cto,
+                president,
+                ceo,
+                analyst
+                )
 
 
 class IsAuthorizeUserPermissionOnly(permissions.DjangoModelPermissions):
     """This permission only allow the user if they are not analyst position"""
 
-    approve_levels = ['supervisor', 'cto/cfo', 'head of department', 'president', 'ceo']
+    approve_levels = [supervisor.name, cto.name, hod.name, president.name, ceo.name]
 
     def has_permission(self, request, view):
         """Return true for user whose level is among the approve_levels, otherwise return False"""
         level = request.user.level.name.lower().strip()
-        if level not in self.approve_levels:
-            return False
-        return True
+        # if level not in self.approve_levels:
+        #     return False
+        # return True
+        return level in self.approve_levels
 
     def has_object_permission(self, request, view, obj):
         return super().has_object_permission(request, view, obj)
@@ -24,9 +33,10 @@ class IsAuthorizeToRaiseIssue(permissions.DjangoModelPermissions):
 
     def has_permission(self, request, view):
         user = request.user
-        if user.level and user.department:
-            return True
-        return False
+        return user.level and user.department
+        # if user.level and user.department:
+        #     return True
+        # return False
 
 
 class IsAuthor(permissions.BasePermission):
@@ -38,9 +48,10 @@ class IsAuthor(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-        if obj.user == user:
-            return True
-        return False
+        # if obj.user == user:
+        #     return True
+        # return False
+        return obj.user == user
 
 
 class IsPermittedToMakeDecision(permissions.BasePermission):
@@ -57,19 +68,19 @@ class IsPermittedToMakeDecision(permissions.BasePermission):
         
         if obj.publish:
 
-            if level == 'supervisor' and depratment == obj.department and obj.user.level.name.strip().lower() == 'analyst':
+            if level == supervisor.name and depratment == obj.department and obj.user.level.name.strip().lower() == analyst.name:
                 return True
 
-            if level == 'head of department' and depratment == obj.department and obj.user.level.name.strip().lower() == 'supervisor':
+            if level == hod.name and depratment == obj.department and obj.user.level.name.strip().lower() == supervisor.name:
                 return True
 
-            if level == 'cto/cfo' and obj.user.level.name.strip().lower() == 'head of department':
+            if level == cto.name and obj.user.level.name.strip().lower() == hod.name:
                 return True
 
-            if level == 'president' and obj.user.level.name.strip().lower() == 'cto/cfo':
+            if level == president.name and obj.user.level.name.strip().lower() == cto.name:
                 return True 
 
-            if level == 'ceo' and obj.user.level.name.strip().lower() == 'president':
+            if level == ceo.name and obj.user.level.name.strip().lower() == president.name:
                 return True
 
             return False

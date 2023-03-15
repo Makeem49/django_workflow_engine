@@ -1,10 +1,13 @@
 from rest_framework import permissions
+from tickets.constants import supervisor, hod 
+from .models import Department
 
 
 class IsAdminApproveUserOnly(permissions.DjangoModelPermissions):
     """This permission only allow the user if they are not analyst position"""
 
-    approve_levels = ['supervisor', 'head of department']
+    approve_levels = [supervisor.name, hod.name]
+    department = Department.objects.filter(name__iexact="administrative department").first()
 
     def has_permission(self, request, view):
         """Return true for user whose level is among the approve_levels and in Administrative department, otherwise return False"""

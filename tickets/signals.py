@@ -5,6 +5,14 @@ from .models import Ticket
 from users.models import User
 from departments.models import Department
 from .utils import get_alert
+from .constants import (
+        analyst,
+        supervisor,
+        ceo,
+        hod,
+        president,
+        cto
+)
 
 
 @receiver(post_save, sender=Ticket)
@@ -18,7 +26,8 @@ def create_ticket(sender, instance, created, **kwargs):
     level = instance.user.level.name.lower().strip()
     user_department = instance.user.department.name.strip()
     department = Department.objects.filter(name=user_department).first()
-    all_levels = ['analyst', 'supervisor', 'cto/cfo', 'head of department', 'president', 'ceo']
+    # all_levels = ['analyst', 'supervisor', 'cto/cfo', 'head of department', 'president', 'ceo']
+    all_levels = [analyst.name, supervisor.name, cto.name, hod.name, president.name, ceo.name]
     if created:
         # print('create')
         # print(instance.publish, type(instance.publish), '************************')
