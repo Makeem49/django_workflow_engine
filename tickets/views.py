@@ -1,5 +1,4 @@
 from rest_framework import generics, permissions
-from django.db.models.signals import post_save
 from rest_framework.response import Response
 
 from .serializers import (TicketSerializer, 

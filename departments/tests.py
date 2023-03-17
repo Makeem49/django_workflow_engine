@@ -105,8 +105,6 @@ class DepartmentDeactivateViewTest(DepartmentCommon, APITestCase):
     def test_deactivate_department_with_valid_permission(self):
         """Test that an admin user with valid permissions can deactivate a department detail"""
         self.client.force_authenticate(user=self.admin_user)
-        print(Department.objects.all())
         url = reverse('employee-deactivate', kwargs={'pk': self.department.pk})
         response = self.client.delete(url)
-        # print(response.json())
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)

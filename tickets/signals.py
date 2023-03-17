@@ -29,9 +29,6 @@ def create_ticket(sender, instance, created, **kwargs):
     # all_levels = ['analyst', 'supervisor', 'cto/cfo', 'head of department', 'president', 'ceo']
     all_levels = [analyst.name, supervisor.name, cto.name, hod.name, president.name, ceo.name]
     if created:
-        # print('create')
-        # print(instance.publish, type(instance.publish), '************************')
         if level in all_levels and (instance.publish==True or instance.publish=='True'):
             """Send alert if the user condition if true."""
-            # print('sending message alert')
             get_alert(level, instance, User, department)

@@ -4,7 +4,7 @@ from django.db.models.deletion import ProtectedError
 
 from .models import User
 from .serializers import UserSerializer
-from departments.permissions import IsAdminApproveUserOnly
+# from departments.permissions import IsAdminApproveUserOnly
 
 
 
@@ -13,7 +13,7 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
-    permission_classes = [permissions.IsAdminUser, IsAdminApproveUserOnly]
+    # permission_classes = [permissions.IsAdminUser, IsAdminApproveUserOnly]
 
 
 class EmployeeDetailView(generics.RetrieveAPIView):
@@ -21,7 +21,7 @@ class EmployeeDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
-    permission_classes = [permissions.IsAdminUser, IsAdminApproveUserOnly]
+    # permission_classes = [permissions.IsAdminUser, IsAdminApproveUserOnly]
 
 
 
@@ -31,7 +31,7 @@ class EmployeeDeactivateView(generics.DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
-    permission_classes = [permissions.IsAdminUser, IsAdminApproveUserOnly]
+    # permission_classes = [permissions.IsAdminUser, IsAdminApproveUserOnly]
 
     def delete(self, *args, **kwargs):
         instance = self.get_object()

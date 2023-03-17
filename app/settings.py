@@ -43,10 +43,13 @@ INSTALLED_APPS = [
     'django_celery_results',
     'rest_framework',
     'rest_framework.authtoken',
+    'departments',
     'users',
     'tickets',
-    'departments',
-    'tokens'
+    'tokens',
+    'process',
+    'stages',
+    'steps'
 ]
 
 MIDDLEWARE = [
