@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from .models import Step
-from stages.models import Stage
+from stage.models import Stage
 from process.models import Process
 from .serializers import StepSerializer
 from rest_framework.response import Response

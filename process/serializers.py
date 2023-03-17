@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Process
-from stages.serializers import StageSerializer
+from stage.serializers import StageSerializer
 
 
 class ProcessSerializer(serializers.ModelSerializer):

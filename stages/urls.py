@@ -1,5 +1,5 @@
 from django.urls import path
-from stages import views
+from stage import views
 
 urlpatterns = [
     path('create/', views.StageCreateView.as_view(), name='stage-create'),

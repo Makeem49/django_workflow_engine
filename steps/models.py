@@ -1,5 +1,5 @@
 from django.db import models
-from stages.models import Stage
+from stage.models import Stage
 
 # Create your models here.
 class Step(models.Model):
